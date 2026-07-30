@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ShoppingBag, Plus, Minus, Check, ArrowRight, ExternalLink, Sparkles, FileText, BookOpen, AlertCircle, RefreshCw } from 'lucide-react';
+import { ShoppingBag, Plus, Minus, Check, ArrowRight, ExternalLink, Sparkles, FileText, BookOpen, AlertCircle, RefreshCw, Copy, QrCode } from 'lucide-react';
+import { APP_CONFIG } from '@/config/appConfig';
 
 interface CatalogItem {
   id: string;
@@ -34,6 +35,7 @@ export default function Storefront() {
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [orderConfirmed, setOrderConfirmed] = useState<OrderConfirmation | null>(null);
+  const [copiedUpi, setCopiedUpi] = useState(false);
 
   useEffect(() => {
     fetchItems();
@@ -68,7 +70,6 @@ export default function Storefront() {
     });
   };
 
-  // Cart calculations
   const cartItemsList = items
     .filter((item) => cart[item.id] && cart[item.id] > 0)
     .map((item) => ({
@@ -111,17 +112,16 @@ export default function Storefront() {
       const data = await res.json();
 
       if (data.success && data.order) {
+        const upiPayUri = `upi://pay?pa=${APP_CONFIG.famPayId}&pn=${encodeURIComponent(APP_CONFIG.famPayName)}&am=${totalAmount}&cu=INR`;
+
         const orderData: OrderConfirmation = {
           id: data.order.id,
           customerName: data.order.customerName,
           totalAmount: data.order.totalAmount,
           items: cartItemsList,
           note: note.trim(),
-          famPayLink: data.famPayLink,
+          famPayLink: upiPayUri,
         };
-
-        // Open FamPay redirect link in new window
-        window.open(data.famPayLink, '_blank');
 
         setOrderConfirmed(orderData);
         setIsCheckoutOpen(false);
@@ -137,6 +137,12 @@ export default function Storefront() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const copyUpiToClipboard = () => {
+    navigator.clipboard.writeText(APP_CONFIG.famPayId);
+    setCopiedUpi(true);
+    setTimeout(() => setCopiedUpi(false), 2000);
   };
 
   const resetOrder = () => {
@@ -189,24 +195,27 @@ export default function Storefront() {
 
         {/* Confirmation State View */}
         {orderConfirmed ? (
-          <div className="animate-fade-in p-6 rounded-2xl bg-[#1a1a1a] border border-teal-500/30 text-center shadow-xl">
-            <div className="w-16 h-16 rounded-full bg-teal-500/20 text-teal-400 mx-auto flex items-center justify-center mb-4 shadow-[0_0_20px_rgba(20,184,166,0.3)]">
-              <Check className="w-8 h-8 stroke-[3]" />
+          <div className="animate-fade-in p-5 rounded-2xl bg-[#161616] border border-teal-500/30 text-center shadow-xl space-y-4">
+            <div className="w-14 h-14 rounded-full bg-teal-500/20 text-teal-400 mx-auto flex items-center justify-center shadow-[0_0_20px_rgba(20,184,166,0.3)]">
+              <Check className="w-7 h-7 stroke-[3]" />
             </div>
             
-            <h2 className="text-xl font-bold text-white mb-1">Thanks, {orderConfirmed.customerName}!</h2>
-            <p className="text-xs text-teal-400 font-semibold mb-4">
-              Order #{orderConfirmed.id} Placed Successfully
-            </p>
+            <div>
+              <h2 className="text-xl font-bold text-white mb-0.5">Thanks, {orderConfirmed.customerName}!</h2>
+              <p className="text-xs text-teal-400 font-semibold">
+                Order #{orderConfirmed.id} Placed Successfully
+              </p>
+            </div>
 
-            <div className="p-4 rounded-xl bg-[#121212] border border-gray-800 text-left mb-5 space-y-3">
-              <div className="text-xs text-gray-400 border-b border-gray-800 pb-2 flex justify-between">
-                <span>Items Ordered</span>
-                <span className="font-semibold text-gray-300">Total: ₹{orderConfirmed.totalAmount}</span>
+            {/* Order Details Breakdown */}
+            <div className="p-3.5 rounded-xl bg-[#101010] border border-gray-800 text-left text-xs space-y-2">
+              <div className="text-gray-400 border-b border-gray-800 pb-2 flex justify-between">
+                <span>Summary</span>
+                <span className="font-bold text-teal-400">Total: ₹{orderConfirmed.totalAmount}</span>
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 {orderConfirmed.items.map((item, idx) => (
-                  <div key={idx} className="flex justify-between text-xs text-gray-300">
+                  <div key={idx} className="flex justify-between text-gray-300">
                     <span>{item.name} × {item.quantity}</span>
                     <span className="text-gray-400">₹{item.subtotal}</span>
                   </div>
@@ -219,21 +228,54 @@ export default function Storefront() {
               )}
             </div>
 
-            <div className="p-3.5 rounded-xl bg-amber-950/40 border border-amber-500/30 text-amber-200 text-xs mb-5 flex items-start gap-2.5 text-left">
-              <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-              <span>
-                <strong>Next Step:</strong> Please complete your payment on FamPay. Click below if the payment window didn't open automatically.
-              </span>
+            {/* Sravan's FamPay QR & UPI Section */}
+            <div className="p-4 rounded-xl bg-gradient-to-b from-[#1c2220] to-[#121413] border border-teal-500/30 space-y-3">
+              <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-teal-300">
+                <QrCode className="w-4 h-4 text-teal-400" />
+                <span>Scan or Pay via FamPay / UPI</span>
+              </div>
+
+              {/* FamPay QR Code Image */}
+              <div className="w-48 h-48 mx-auto bg-white p-2 rounded-2xl shadow-lg border-2 border-teal-500/40 overflow-hidden">
+                <img
+                  src={APP_CONFIG.qrImagePath}
+                  alt="Sravan R FamPay QR Code"
+                  className="w-full h-full object-contain rounded-xl"
+                />
+              </div>
+
+              {/* Sravan UPI ID & Copy Pill */}
+              <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[#0d0d0d] border border-gray-800">
+                <div className="text-left pl-1">
+                  <p className="text-[10px] text-gray-500 uppercase font-semibold">FamPay / UPI ID</p>
+                  <p className="text-xs font-bold text-white tracking-wide">{APP_CONFIG.famPayId}</p>
+                </div>
+                <button
+                  onClick={copyUpiToClipboard}
+                  className="px-3 py-1.5 rounded-lg bg-teal-500/15 hover:bg-teal-500/25 text-teal-300 border border-teal-500/30 text-xs font-bold flex items-center gap-1 transition-all"
+                >
+                  {copiedUpi ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-teal-400" />
+                      <span>Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Copy</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
-            <div className="space-y-2.5">
+            {/* Action Buttons */}
+            <div className="space-y-2 pt-1">
               <a
                 href={orderConfirmed.famPayLink}
-                target="_blank"
-                rel="noreferrer"
-                className="w-full py-3.5 px-4 rounded-xl bg-teal-500 hover:bg-teal-600 text-black font-bold text-sm flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(20,184,166,0.3)] transition-all active:scale-[0.98]"
+                className="w-full py-3.5 px-4 rounded-xl bg-teal-500 hover:bg-teal-600 text-black font-bold text-sm flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(20,184,166,0.35)] transition-all active:scale-[0.98]"
               >
-                <span>Pay ₹{orderConfirmed.totalAmount} on FamPay</span>
+                <span>Pay ₹{orderConfirmed.totalAmount} via UPI App</span>
                 <ExternalLink className="w-4 h-4" />
               </a>
 
@@ -448,7 +490,7 @@ export default function Storefront() {
                   )}
                 </button>
                 <p className="text-[11px] text-gray-500 text-center mt-2">
-                  You will be redirected to FamPay to complete your payment.
+                  You can scan Sravan's FamPay QR or pay via any UPI app after placing.
                 </p>
               </div>
             </form>

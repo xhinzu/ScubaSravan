@@ -1,11 +1,13 @@
 /**
  * ScubaSravan Central Configuration
- * Easy location to edit FamPay redirect URL and Admin Password.
  */
 
 export const APP_CONFIG = {
-  // FamPay link redirected to after submitting order
-  famPayLink: process.env.FAMPAY_LINK || "https://fam.app/pay/scubasravan",
+  // Sravan's FamPay UPI details
+  famPayId: "6238753844@fam",
+  famPayName: "Sravan R",
+  qrImagePath: "/sravan-fam-qr.png",
+  famPayLink: process.env.FAMPAY_LINK || "upi://pay?pa=6238753844@fam&pn=Sravan%20R&cu=INR",
   
   // Password to log in to the /admin dashboard
   adminPassword: process.env.ADMIN_PASSWORD || "scuba123",
