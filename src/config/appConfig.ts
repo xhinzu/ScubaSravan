@@ -18,7 +18,7 @@ export const APP_CONFIG = {
     { name: "CS Assignment", price: 50, sortOrder: 2 },
     { name: "Hindi Assignment", price: 10, sortOrder: 3 },
     { name: "Biomaths Diagram (1)", price: 10, sortOrder: 4 },
-    { name: "Record (per page)", price: 15, sortOrder: 5 },
+    { name: "Record (per activity)", price: 15, sortOrder: 5 },
     { name: "Custom Drawings 😋", price: 150, sortOrder: 6 },
   ]
 };

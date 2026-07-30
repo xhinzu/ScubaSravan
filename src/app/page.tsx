@@ -308,7 +308,7 @@ export default function Storefront() {
             ) : (
               items.map((item) => {
                 const qty = cart[item.id] || 0;
-                const isPerUnit = item.name.includes('(per page)') || item.name.includes('(1)') || item.name.includes('Diagram');
+                const isPerUnit = item.name.includes('(per page)') || item.name.includes('(per activity)') || item.name.includes('(1)') || item.name.includes('Diagram');
                 
                 return (
                   <div
